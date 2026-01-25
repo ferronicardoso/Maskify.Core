@@ -6,9 +6,9 @@ public class MaskerTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void MascararCPF_NumeroNaoInformado_RetornaException(string cpf)
+    public void MascararCPF_NumeroNaoInformado_RetornaException(string? cpf)
     {
-        var exception = Assert.Throws<ArgumentNullException>(() => cpf.MaskCPF());
+        var exception = Assert.Throws<ArgumentNullException>(() => cpf!.MaskCPF());
         Assert.Contains("CPF not provided.", exception.Message);
     }
     
@@ -34,9 +34,9 @@ public class MaskerTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void MascararCNPJ_NumeroNaoInformado_RetornaException(string cnpj)
+    public void MascararCNPJ_NumeroNaoInformado_RetornaException(string? cnpj)
     {
-        var exception = Assert.Throws<ArgumentNullException>(() => cnpj.MaskCNPJ());
+        var exception = Assert.Throws<ArgumentNullException>(() => cnpj!.MaskCNPJ());
         Assert.Contains("CNPJ not provided", exception.Message);
     }
     
@@ -46,7 +46,7 @@ public class MaskerTests
     public void MascararCNPJ_NumeroFormatoInvalido_RetornaException(string cnpj)
     {
         var exception = Assert.Throws<ArgumentException>(() => cnpj.MaskCNPJ());
-        Assert.Contains("CNPJ must have 14 digits.", exception.Message);
+        Assert.Contains("CNPJ must have exactly 14 alphanumeric characters", exception.Message);
     }
 
     [Theory]
@@ -62,9 +62,9 @@ public class MaskerTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void MascararCartaoCredito_NumeroNaoInformado_RetornaException(string creditCard)
+    public void MascararCartaoCredito_NumeroNaoInformado_RetornaException(string? creditCard)
     {
-        var exception = Assert.Throws<ArgumentNullException>(() => creditCard.MaskCreditCard());
+        var exception = Assert.Throws<ArgumentNullException>(() => creditCard!.MaskCreditCard());
         Assert.Contains("Credit card not provided.", exception.Message);
     }
     
@@ -94,9 +94,9 @@ public class MaskerTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void MascararEmail_EmailNaoInformado_RetornaException(string email)
+    public void MascararEmail_EmailNaoInformado_RetornaException(string? email)
     {
-        var exception = Assert.Throws<ArgumentNullException>(() => email.MaskEmail());
+        var exception = Assert.Throws<ArgumentNullException>(() => email!.MaskEmail());
         Assert.Contains("Email not provided.", exception.Message);
     }
 
@@ -205,6 +205,114 @@ public class MaskerTests
         Assert.Throws<ArgumentException>(() => invalidCNPJ.MaskCNPJ());
     }
 
+    #region Alphanumeric CNPJ Tests (New Format)
+
+    [Theory]
+    [InlineData("12ABC678DEF195", "12.***.***/**F1-95")]  // Alphanumeric CNPJ
+    [InlineData("AB123456CD0012", "AB.***.***/**00-12")]  // Starts with letters
+    [InlineData("1A2B3C4D5E6F78", "1A.***.***/**6F-78")]  // Mixed pattern
+    public void MaskCNPJ_AlphanumericFormat_ShouldMaskCorrectly(string cnpj, string expectedMasked)
+    {
+        // Act
+        string maskedCNPJ = cnpj.MaskCNPJ();
+
+        // Assert
+        Assert.Equal(expectedMasked, maskedCNPJ);
+    }
+
+    [Theory]
+    [InlineData("12.ABC.678/DEF1-95", "12.***.***/**F1-95")]  // Formatted alphanumeric
+    [InlineData("AB.123.456/CD00-12", "AB.***.***/**00-12")]  // Formatted with letters at start
+    public void MaskCNPJ_FormattedAlphanumeric_ShouldMaskCorrectly(string cnpj, string expectedMasked)
+    {
+        // Act
+        string maskedCNPJ = cnpj.MaskCNPJ();
+
+        // Assert
+        Assert.Equal(expectedMasked, maskedCNPJ);
+    }
+
+    [Theory]
+    [InlineData("12abc678def195", "12.***.***/**F1-95")]  // Lowercase should be normalized
+    [InlineData("Ab123456Cd0012", "AB.***.***/**00-12")]  // Mixed case
+    public void MaskCNPJ_LowercaseAlphanumeric_ShouldNormalizeToUppercase(string cnpj, string expectedMasked)
+    {
+        // Act
+        string maskedCNPJ = cnpj.MaskCNPJ();
+
+        // Assert
+        Assert.Equal(expectedMasked, maskedCNPJ);
+    }
+
+    [Theory]
+    [InlineData("12ABC678DEF19")]   // 13 characters (too short)
+    [InlineData("12ABC678DEF1956")] // 15 characters (too long)
+    [InlineData("12ABC")]           // Way too short
+    public void MaskCNPJ_InvalidAlphanumericLength_ShouldThrowException(string invalidCNPJ)
+    {
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => invalidCNPJ.MaskCNPJ());
+        Assert.Contains("CNPJ must have exactly 14 alphanumeric characters", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("12ABC678DEF195", '#', "12.###.###/##F1-95")]  // Custom mask character
+    [InlineData("12345678000195", 'X', "12.XXX.XXX/XX01-95")]  // Numeric with custom mask
+    public void MaskCNPJ_CustomMaskCharacter_ShouldApplyCorrectly(string cnpj, char maskChar, string expectedMasked)
+    {
+        // Act
+        string maskedCNPJ = cnpj.MaskCNPJ(maskChar);
+
+        // Assert
+        Assert.Equal(expectedMasked, maskedCNPJ);
+    }
+
+    #endregion
+
+    #region CnpjMaskFacade Direct Tests
+
+    [Fact]
+    public void CnpjMaskFacade_NumericCnpj_ShouldMaskCorrectly()
+    {
+        // Arrange
+        string cnpj = "12345678000195";
+
+        // Act
+        string masked = Cnpj.CnpjMaskFacade.Mask(cnpj);
+
+        // Assert
+        Assert.Equal("12.***.***/**01-95", masked);
+    }
+
+    [Fact]
+    public void CnpjMaskFacade_AlphanumericCnpj_ShouldMaskCorrectly()
+    {
+        // Arrange
+        string cnpj = "12ABC678DEF195";
+
+        // Act
+        string masked = Cnpj.CnpjMaskFacade.Mask(cnpj);
+
+        // Assert
+        Assert.Equal("12.***.***/**F1-95", masked);
+    }
+
+    [Fact]
+    public void CnpjMaskFacade_NullInput_ShouldThrowArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => Cnpj.CnpjMaskFacade.Mask(null!));
+    }
+
+    [Fact]
+    public void CnpjMaskFacade_EmptyInput_ShouldThrowArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => Cnpj.CnpjMaskFacade.Mask(""));
+    }
+
+    #endregion
+
     [Theory]
     [InlineData("", 10, 5)]
     [InlineData(" ", 5, 9)]
@@ -258,10 +366,10 @@ public class MaskerTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void MaskVehicleLicensePlate_ShouldThrowException_WhenLicensePlateIsNullOrEmpty(string licensePlate)
+    public void MaskVehicleLicensePlate_ShouldThrowException_WhenLicensePlateIsNullOrEmpty(string? licensePlate)
     {
         // Act
-        var exception = Assert.Throws<ArgumentNullException>(() => licensePlate.MaskVehicleLicensePlate());
+        var exception = Assert.Throws<ArgumentNullException>(() => licensePlate!.MaskVehicleLicensePlate());
         
         // Assert
         Assert.Contains("License plate not provided.", exception.Message);
@@ -271,20 +379,20 @@ public class MaskerTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void MascararRG_NumeroNaoInformado_RetornaException(string rg)
+    public void MascararRG_NumeroNaoInformado_RetornaException(string? rg)
     {
-        var exception = Assert.Throws<ArgumentNullException>(() => rg.MaskRG());
+        var exception = Assert.Throws<ArgumentNullException>(() => rg!.MaskRG());
         Assert.Contains("RG not provided.", exception.Message);
     }
 
     [Theory]
-    [InlineData("1234567")]    // Menos de 8 dígitos
-    [InlineData("1234567890")] // Mais de 9 dígitos
+    [InlineData("1234567")]    // Menos de 8 dï¿½gitos
+    [InlineData("1234567890")] // Mais de 9 dï¿½gitos
     public void MascararRG_NumeroFormatoInvalido_RetornaException(string rg)
     {
         var exception = Assert.Throws<ArgumentException>(() => rg.MaskRG());
 
-        // Verifica se a mensagem de erro corresponde ao cenário
+        // Verifica se a mensagem de erro corresponde ao cenï¿½rio
         if (rg.Length < 8)
         {
             Assert.Contains("RG must have at least 8 digits.", exception.Message);
@@ -297,9 +405,9 @@ public class MaskerTests
 
     [Theory]
     [InlineData("46.546.987-3", "**.***.**7-3")] // RG formatado
-    [InlineData("465469873", "*******73")]        // RG não formatado
-    [InlineData("12.345.678-9", "**.***.**8-9")]   // RG com 8 dígitos
-    [InlineData("123456789", "*******89")]        // RG sem formatação com 9 dígitos
+    [InlineData("465469873", "*******73")]        // RG nï¿½o formatado
+    [InlineData("12.345.678-9", "**.***.**8-9")]   // RG com 8 dï¿½gitos
+    [InlineData("123456789", "*******89")]        // RG sem formataï¿½ï¿½o com 9 dï¿½gitos
     public void MascararRG_NumeroFormatoValido_RetornaSucesso(string rg, string expectedMaskedRg)
     {
         // Act

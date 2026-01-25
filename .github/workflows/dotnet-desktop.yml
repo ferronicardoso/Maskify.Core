@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*.*.*'
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -14,10 +18,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+            echo "IS_RELEASE=true" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_EVENT_NAME == "release" ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+            echo "IS_RELEASE=true" >> $GITHUB_OUTPUT
+          else
+            VERSION="1.4.3"
+            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+            echo "IS_RELEASE=false" >> $GITHUB_OUTPUT
+          fi
+          echo "Package version: $VERSION"
+
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: |
+            8.x
+            9.x
+            10.x
 
       - name: Restore dependencies
         run: dotnet restore
@@ -29,10 +54,10 @@ jobs:
         run: dotnet test ./Maskfy.Core.Tests/Maskify.Core.Tests.csproj --collect "XPlat Code Coverage"
 
       - name: Pack project
-        run: dotnet pack --configuration Release --no-build -o ./nupkg
+        run: dotnet pack ./Maskify.Core/Maskify.Core.csproj --configuration Release --no-build -o ./nupkg /p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
 
       - name: Publish NuGet package to NuGet.org
-        if: github.ref == 'refs/heads/main'
+        if: steps.get_version.outputs.IS_RELEASE == 'true'
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: dotnet nuget push ./nupkg/*.nupkg --api-key $NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
@@ -40,5 +65,5 @@ jobs:
       - name: Upload NuGet package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nupkg
+          name: nupkg-${{ steps.get_version.outputs.VERSION }}
           path: ./nupkg/*.nupkg

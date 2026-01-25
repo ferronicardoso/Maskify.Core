@@ -61,33 +61,19 @@
         }
 
         /// <summary>
-        /// Método para mascarar CNPJ, aceita CNPJ com ou sem máscara
+        /// Método para mascarar CNPJ, aceita CNPJ com ou sem máscara.
+        /// Suporta tanto CNPJ numérico (legado) quanto alfanumérico (novo formato).
         /// </summary>
-        /// <param name="cnpj"></param>
-        /// <param name="maskCharacter"></param>
-        /// <returns></returns>
+        /// <param name="cnpj">CNPJ a ser mascarado (14 caracteres alfanuméricos).</param>
+        /// <param name="maskCharacter">Caractere usado para mascarar.</param>
+        /// <returns>CNPJ formatado e mascarado: XX.XXX.XXX/XXXX-XX</returns>
+        /// <remarks>
+        /// Para acesso direto à API com detecção automática de formato,
+        /// use <see cref="Cnpj.CnpjMaskFacade.Mask(string, char)"/>.
+        /// </remarks>
         public static string MaskCNPJ(this string cnpj, char maskCharacter = '*')
         {
-            if (string.IsNullOrWhiteSpace(cnpj)) throw new ArgumentNullException(nameof(cnpj), "CNPJ not provided.");
-            
-            // Remove qualquer formatação (pontos, barras e traços) usando Span
-            Span<char> cnpjDigits = stackalloc char[14];
-            int index = 0;
-            foreach (var c in cnpj)
-            {
-                if (char.IsDigit(c) && index < 14)
-                    cnpjDigits[index++] = c;
-            }
-
-            if (index != 14) throw new ArgumentException("CNPJ must have 14 digits.");
-
-            // Aplica a máscara diretamente no span
-            for (int i = 2; i < 10; i++) // Máscara no meio
-            {
-                cnpjDigits[i] = maskCharacter;
-            }
-
-            return MaskerHelper.ConvertToCnpjFormat(cnpjDigits);
+            return Cnpj.CnpjMaskFacade.Mask(cnpj, maskCharacter);
         }
 
         /// <summary>

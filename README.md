@@ -7,11 +7,13 @@
 
 **Maskify** is a lightweight, efficient, and flexible library designed to help developers securely mask sensitive data, such as Brazilian documents (CPF, CNPJ), emails, credit cards, mobile and residential phone numbers, and more. It provides out-of-the-box masking for common data types and customizable options for other sensitive information, ensuring compliance with data protection regulations like LGPD and GDPR.
 
+> ✅ **Fully compliant with the new Brazilian CNPJ law!** Maskify.Core already supports the new alphanumeric CNPJ format (Instrução Normativa RFB nº 2.229/2024), which allows letters and numbers in CNPJ starting January 2026.
+
 ## Key Features
 
 - **RG Masking**: Masks Brazilian RG numbers (7 to 9 digits), keeping only the last two digits visible.
 - **CPF Masking**: Effortlessly masks CPF numbers, both formatted and unformatted.
-- **CNPJ Masking**: Supports CNPJ numbers, with or without formatting.
+- **CNPJ Masking**: Supports both **numeric** and **alphanumeric** CNPJ formats, compliant with Brazilian regulations.
 - **Email Masking**: Partially hides email addresses while preserving the domain.
 - **Credit Card Masking**: Safely masks credit card numbers, including support for:
   - Standard 16-digit cards.

@@ -50,8 +50,8 @@ public class MaskSensitiveDataAttribute : ValidationAttribute
             default:
                 return new ValidationResult("Tipo de dado não suportado.");
         }
-        PropertyInfo property = validationContext.ObjectType.GetProperty(validationContext.MemberName!)!;
-        if (property != (PropertyInfo)null && property.CanWrite)
+        PropertyInfo? property = validationContext.ObjectType.GetProperty(validationContext.MemberName!);
+        if (property is not null && property.CanWrite)
             property.SetValue(validationContext.ObjectInstance, (object)value2);
         return ValidationResult.Success!;
     }
